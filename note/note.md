@@ -455,3 +455,212 @@ class是bean的全限定名=包名+类名
 ```
 
 使用的时候，直接使用总的配置就可以了
+
+
+# 6、依赖注入
+
+## 6.1、构造器注入
+前面已经说过了
+
+
+## 6.2、set方式注入【重点】
+* 依赖注入：set注入！  
+  * 依赖：bean对象的创建依赖于容器！
+  * 注入：bean对象中的所有属性，由容器来注入！
+  
+【环境搭建】
+1. 复杂类型
+```java
+public class Address {
+    private String address;
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+}
+```
+2. 真事测试对象
+```java
+public class Student {
+    private String name;
+    private Address address;
+    private String[] book;
+    private List<String> hobbies;
+    private Map<String,String> card;
+    private Set<String> games;
+    private String wife;
+    private Properties info;
+}
+```
+3. beans.xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="student" class="com.wugang.pojo.Student">
+        <!-- 第一种：普通值注入，value -->
+        <property name="name" value="张三"/>
+    </bean>
+</beans>
+```
+4. 测试类
+```java
+public class MyTest {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext("beans.xml");
+        Student student = (Student) context.getBean("student");
+
+        System.out.println(student.getName());
+    }
+}
+```
+
+完善注入信息
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="address" class="com.wugang.pojo.Address">
+        <property name="address" value="林荫大道108号"/>
+    </bean>
+
+    <bean id="student" class="com.wugang.pojo.Student">
+        <!-- 普通值注入，value -->
+        <property name="name" value="张三"/>
+
+        <!-- bean注入，ref -->
+        <property name="address" ref="address"/>
+
+        <!-- 数组注入，ref -->
+        <property name="book">
+            <array>
+                <value>三国演义</value>
+                <value>水浒传</value>
+                <value>西游记</value>
+                <value>红楼梦</value>
+            </array>
+        </property>
+
+        <!-- List注入 -->
+        <property name="hobbies">
+            <list>
+                <value>听歌</value>
+                <value>看电影</value>
+                <value>打篮球</value>
+            </list>
+        </property>
+
+        <!-- Map -->
+        <property name="card">
+            <map>
+                <entry key="身份证" value="123456789456321598"/>
+                <entry key="银行卡" value="12345678945652159875"/>
+            </map>
+        </property>
+
+        <!-- Set -->
+        <property name="games">
+            <set>
+                <value>LOL</value>
+                <value>DNF</value>
+            </set>
+        </property>
+
+        <!-- Null -->
+        <property name="wife">
+            <null/>
+        </property>
+
+        <!-- Properties -->
+        <property name="info">
+            <props>
+                <prop key="driver">201612085</prop>
+                <prop key="url">男</prop>
+                <prop key="username">男</prop>
+                <prop key="password">男</prop>
+            </props>
+        </property>
+    </bean>
+</beans>
+```
+
+## 6.3、拓展方式注入
+
+我们可以使用p命名空间和c命名空间进行注入  
+官方解释：
+![](img/p%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E6%B3%A8%E5%85%A5.png)
+![](img/c命名空间注入.png)
+
+使用：
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- p命名空间注入，可以直接注入属性的值：property -->
+    <bean id="user" class="com.wugang.pojo.User" p:name="李四" p:age="18"/>
+
+    <!-- c命名空间注入，通过构造器注入：construct-orgs -->
+    <bean id="user2" class="com.wugang.pojo.User" c:name="王五" c:age="108"/>
+</beans>
+```
+
+测试：
+```java
+@Test
+public void test2() {
+   ApplicationContext context = new ClassPathXmlApplicationContext("userBeans.xml");
+   User user = context.getBean("user2", User.class);
+
+   System.out.println(user);
+}
+```
+
+注意点：p命名和c命名空间不能直接使用，需要导入xml约束！
+```xml
+xmlns:p="http://www.springframework.org/schema/p"
+xmlns:c="http://www.springframework.org/schema/c"
+```
+
+## 6.4、bean的作用域
+![](img/bean的作用域.png)
+
+1. 单例模式（Spring默认机制）
+   ![](img/单例模式.png)
+   ```xml
+   <bean id="user2" class="com.wugang.pojo.User" c:name="王五" c:age="108" scope="singleton"/>
+   ```
+2. 原型模式：每次从容器中get的时候，都会产生一个新对象！
+   ![](img/原型模式.png)
+   ```xml
+   <bean id="user2" class="com.wugang.pojo.User" c:name="王五" c:age="108" scope="prototype"/>
+   ```
+3. 其余的request、session、application，这些只能在web开发中使用到！
+
+# 7、Bean的自动装配
+
+* 自动装配是Spring满足bean依赖的一种方式！
+* Spring会在上下文中自动寻找，并自动给bean装配属性！
+
+
+在Spring中有三种装配的方式
+1. 在xml中显示的配置
+2. 在java中显示配置
+3. 隐式的自动装配bean 【重要】
+
+## 7.1、测试
+
