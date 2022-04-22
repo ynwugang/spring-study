@@ -825,13 +825,153 @@ public class People {
 # 8、使用注解开发
 在Spring4之后，要使用注解开发，必须要保证aop的包导入了
 ![](img/aop包.png)
-使用注解需要导入context约束，增加注解的支持
-1. bean
+使用注解需要导入context约束，增加注解的支持!
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+     https://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/context
+     https://www.springframework.org/schema/context/spring-context.xsd">
 
+    <context:annotation-config/>
+
+</beans>
+```
+1. bean  
+@Component：组件，放在类上，说明这个类被Spring管理了，就是bean！
+```java
+//等价于 <bean id="user" class="com.wugang.pojo.User"/>
+//@Component 组件
+@Component
+public class User {
+    public String name;
+}
+```
 
 2. 属性如何注入
-3. 衍生的注解
+```java
+@Component
+public class User {
+    
+    public String name;
+    
+    //相当于 <property name="name" value="张三123456789"/>
+    @Value("张三123456789")
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+```
+
+3. 衍生的注解  
+@Component 有几个衍生注解，我们在web开发中，会按照mvc三层架构分层！
+   * dao 【@Repository】
+   * service 【@Service】
+   * controller 【@Controller】  
+
+这四个注解功能都是一样的，都是代表将某个类注册到Spring中，装配Bean
+
 4. 自动装配
-5. 作用域
-6. 小结
    
+
+5. 作用域  
+@Scope("singleton")
+```java
+@Component
+@Scope("singleton")
+public class User {
+
+    public String name;
+}
+```
+
+6. 小结  
+**xml与注解：** 
+   * xml更加万能，适用于任何场景！维护简单方便
+   * 注解 不是自己类使用不了，维护相对复杂！
+  
+   **xml与注解最佳实践：**
+   * xml用来管理bean；
+   * 注解只负责完成属性的注入；
+   * 我们在使用的过程中，只需要注意一个问题：必须让注解生效，就需要开启注解的支持
+      ```xml
+      <!-- 指定要扫描的包，这个包下的注解就会生效 -->
+      <context:component-scan base-package="com.wugang"/>
+      <context:annotation-config/>
+      ```
+# 9、使用Java的方法配置Spring
+我们现在要完全不使用Spring的xml配置了，全权交给java来做！  
+JavaConfig是Spring的一个子项目，在Spring 4 之后，它成为了一个核心功能！
+![](img/ApplicationContext的实现.png)
+
+user类：
+```java
+//这个注解的意思：就是说明这个类被Spring接管了，注册到了容器中
+@Component
+public class User {
+    private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    @Value("张三AppConfig") //属性注入值
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "name='" + name + '\'' +
+                '}';
+    }
+}
+```
+config类（配置类）：
+```java
+package com.wugang.config;
+
+import com.wugang.pojo.User;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+ */
+//这个也会被Spring容器托管，注册到容器中，因为它本身就是一个@Component
+//@Configuration代表这是一个配置类，就和我们之前看的Beans.xml一样
+@Configuration
+@ComponentScan("com.wugang.pojo")
+@Import(Config2.class)
+public class Config {
+
+    //注册一个bean，就相当于我们之前写的一个bean标签，
+    //这个方法的名字就是相当于bean标签中的id属性
+    //这个方法的返回值就相当于bean标签中的class属性
+    @Bean
+    public User getUser(){
+        return new User();  //就是返回要注入到bean的对象！
+    }
+}
+```
+
+测试类：
+```java
+public class Test {
+    public static void main(String[] args) {
+        //如果完全使用了配置类方式去做，我们就只能通过 AnnotationConfig 上下文来获取容器，通过配置类的class对象加载！
+        ApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
+
+        User user = (User) context.getBean("getUser");
+
+        System.out.println(user.getName());
+    }
+}
+```
+
+
+这种纯Java的配置方式，在SpringBoot中随处可见！
