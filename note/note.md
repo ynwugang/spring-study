@@ -663,4 +663,175 @@ xmlns:c="http://www.springframework.org/schema/c"
 3. 隐式的自动装配bean 【重要】
 
 ## 7.1、测试
+环境搭建：一个人有两个宠物！
+```java
+public class People {
+    private Cat cat;
+    private Dog dog;
+    private String name;
+}
 
+public class Cat {
+    public void shout(){
+        System.out.println("miao");
+    }
+}
+
+public class Dog {
+    public void shout(){
+        System.out.println("wang");
+    }
+}
+```
+
+```xml
+<bean id="cat" class="com.wugang.pojo.Cat"/>
+<bean id="dog" class="com.wugang.pojo.Dog"/>
+
+<bean id="people" class="com.wugang.pojo.People">
+   <property name="name" value="周吴郑王"/>
+   <property name="cat" ref="cat"/>
+   <property name="dog" ref="dog"/>
+</bean>
+```
+
+```java
+@Test
+public void test1() {
+   ApplicationContext context = new ClassPathXmlApplicationContext("beans.xml");
+   People people = context.getBean("people", People.class);
+
+   people.getCat().shout();
+   people.getDog().shout();
+}
+```
+
+## 7.2、byName自动装配
+```xml
+<!--
+byName：会自动在容器上下文查找和自己对象set方法后面的值对应的beanid！
+-->
+<bean id="people" class="com.wugang.pojo.People" autowire="byName">
+   <property name="name" value="周吴郑王"/>
+</bean>
+```
+
+## 7.3、byType自动装配
+```xml
+<bean class="com.wugang.pojo.Cat"/>
+<bean class="com.wugang.pojo.Dog"/>
+
+<!--
+byName：会自动在容器上下文查找和自己对象set方法后面的值对应的beanid！id和set方法后面的值名称必须相同，否则找不到
+byType：会自动在容器上下文查找和自己对象属性类型相同的bean！此时被装配对象bean的id可以省略
+-->
+<bean id="people" class="com.wugang.pojo.People" autowire="byType">
+   <property name="name" value="周吴郑王"/>
+</bean>
+```
+
+小结：
+* byName的时候，需要保证所有bean的id唯一，并且这个bean需要和自动注入的属性的set方法的值一致！
+* byType的时候，需要保证所有bean的class唯一，并且这个bean需要和自动注入的属性的属性的类型一致！
+
+## 7.4、 使用注解实现自动装配
+
+jdk1.5支持的注解，Spring2.5就支持注解了。  
+The introduction of annotation-based configuration raised the question of whether this approach is “better” than XML.
+
+要使用注解须知：
+1. 导入约束，context约束
+2. **配置注解的支持：<context:annotation-config/>【重要】**
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:annotation-config/>
+
+   </beans>
+   ```
+
+@Autowired
+直接在属性上使用即可！也可以在set方式上使用！  
+使用Autowired时我们可以不用编写set方法，前提是你这个自动装配的属性在IOC（Spring）容器中存在，且符合名字byName！  
+科普：
+```java
+@Nullable   若某个字段使用了这个注解，说明这个字段可以为null；
+```
+
+```java
+public @interface Autowired {
+    boolean required() default true;
+}
+```
+
+测试代码：
+```java
+public class People {
+    //如果显示定义了Autowired的required属性为false，说明这个对象可以为null，否则不允许为空
+    @Autowired(required = false)
+    private Cat cat;
+    @Autowired
+    private Dog dog;
+    private String name;
+}
+```
+
+如果@Autowired自动装配的环境比较复杂，自动装配无法通过一个注解[@Autowired]完成的时候，我们可以使用@Qualifier(value = "xxx")去配合@Autowired的使用，指定一个唯一的bean对象注入！
+```xml
+<bean id="cat" class="com.wugang.pojo.Cat"/>
+<bean id="cat111" class="com.wugang.pojo.Cat"/>
+<bean id="dog" class="com.wugang.pojo.Dog"/>
+<bean id="dog222" class="com.wugang.pojo.Dog"/>
+<bean id="people" class="com.wugang.pojo.People"/>
+```
+```java
+public class People {
+    @Autowired
+    @Qualifier(value = "cat222")
+    private Cat cat;
+    @Autowired
+    @Qualifier(value = "dog222")
+    private Dog dog;
+    private String name;
+}
+```
+
+**@Resource注解**
+```java
+public class People {
+    @Resource(name = "cat1")
+    private Cat cat;
+    @Resource(name = "dog2")
+    private Dog dog;
+    private String name;
+}
+```
+
+
+小结：
+@Resource和@Autowired的区别：
+* 都是用来自动装配的，都可雨放在属性字段上
+* @Autowired 默认通过byType的方式实现，如果找不到，则通过byName实现，而且必须要求这个对象存在！【常用】
+* @Resource 默认通过byName的方式实现，如果找不到名字，则通过byType实现！如果两个都找不到的情况下，就会报错！【常用】
+* 执行顺序不同：@Autowired 通过byType的方式实现；@Resource 默认通过byName的方式实现
+
+# 8、使用注解开发
+在Spring4之后，要使用注解开发，必须要保证aop的包导入了
+![](img/aop包.png)
+使用注解需要导入context约束，增加注解的支持
+1. bean
+
+
+2. 属性如何注入
+3. 衍生的注解
+4. 自动装配
+5. 作用域
+6. 小结
+   
