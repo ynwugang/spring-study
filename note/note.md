@@ -1410,3 +1410,33 @@ SpringAOP中，通过Advice定义横切逻辑，Spring中支持5中类型的Advi
 方式二：自定义来实现AOP 【主要是切面定义】
 
 方式三：使用注解实现
+
+
+
+# 12、整合Mybatis
+步骤：
+1. 导入相关jar包
+   * junit
+   * mybatis
+   * mysql数据库
+   * spring相关的
+   * aop织入
+   * mybatis-spring 【new】
+2. 编写配置文件
+3. 测试
+
+## 12.1、回忆Mybatis
+1. 编写实体类
+2. 编写核心配置文件
+3. 编写接口
+4. 编写Mapper.xml
+5. 测试
+
+
+## 12.2、Mybatis-Spring
+1. 编写数据源配置
+2. sqlSessionFactory
+3. sqlSessionTemplate
+4. 需要给接口加实现类
+5. 将自己写的实现类，注入到Spring中
+   
