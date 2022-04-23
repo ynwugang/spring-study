@@ -975,3 +975,438 @@ public class Test {
 
 
 这种纯Java的配置方式，在SpringBoot中随处可见！
+
+---
+
+# 10、代理模式
+为什么要学习代理模式？  
+因为这就是Spring AOP的底层！【Spring AOP 和 SpringMVC】  
+
+
+代理模式的分类：
+* 静态代理
+* 动态代理
+
+代理模式：  
+![](img/代理模式.png)
+
+## 10.1、静态代理
+角色分析：
+* 抽象角色：一般会使用接口或者抽象类来解决
+* 真实角色：被代理的角色
+* 代理角色：代理真实角色，代理真实角色后，我们一般会做一些附属操作
+* 客户：访问代理对象对的人
+
+代码步骤：
+1. 接口
+   ```java
+    //租房
+    public interface Rent {
+        void rent();
+    }
+   ```
+   
+2. 真实角色
+   ```java
+    /**
+    * 房东
+    */
+    public class Host implements Rent{
+
+        @Override
+        public void rent() {
+            System.out.println("房东要出租房子！");
+        }
+    }
+   ```
+   
+3. 代理角色
+   ```java
+    /**
+    * 中介
+    */
+    public class Proxy implements Rent {
+        private Host host;
+
+        public Proxy() {
+        }
+
+        public Proxy(Host host) {
+            this.host = host;
+        }
+
+        @Override
+        public void rent() {
+            seeHouse();
+            host.rent();
+            hetong();
+            fare();
+        }
+
+        /**
+        * 看房
+        */
+        public void seeHouse() {
+            System.out.println("中介带你看房！");
+        }
+
+        /**
+        * 签租赁合同
+        */
+        public void hetong() {
+            System.out.println("签租赁合同！");
+        }
+
+        /**
+        * 收中介费
+        */
+        public void fare() {
+            System.out.println("收中介费！");
+        }
+    }
+   ```
+   
+4. 客户端访问代理juese
+   ```java
+   public class Client {
+        public static void main(String[] args) {
+            //房东要租房子
+            Host host = new Host();
+            //代理，中介帮房东租房子，但是呢？代理角色一般会有一些附属操作！
+            Proxy proxy = new Proxy(host);
+            //你不用面对房东，直接找中介租房即可！
+            proxy.rent();
+        }
+    }
+   ```
+
+代理模式的好处：
+* 可以使真实角色的操作更加纯粹！不用去关注一些公共的业务
+* 公共业务就交给代理角色！实现了业务的分工！
+* 公共业务发生扩展的时候，方便集中管理！
+
+缺点：
+* 一个真实角色就会产生一个代理角色：代码量会翻倍~代码效率会变低
+
+
+## 10.2、加深理解
+代码：
+1. service接口：
+   ```java
+    public interface UserService {
+        void add();
+        void delete();
+        void update();
+        void query();
+    }
+   ```
+
+2. service实现类：
+   ```java
+    /**
+    * 真实对象
+    */
+    public class UserServiceImpl implements UserService{
+        @Override
+        public void add() {
+            System.out.println("增加了一个用户");
+        }
+
+        @Override
+        public void delete() {
+            System.out.println("删除了一个用户");
+        }
+
+        @Override
+        public void update() {
+            System.out.println("修改了一个用户");
+        }
+
+        @Override
+        public void query() {
+            System.out.println("查询了一个用户");
+        }
+
+        //1.改动原有的业务代码，在公司中是大忌！
+    }
+   ```
+
+3. servic实现类代理：
+   ```java
+    /**
+    * 代理service实现类，增加一个log输出的方法
+    */
+    public class UserServiceProxy implements UserService{
+        private UserServiceImpl userService;
+
+        public void setUserService(UserServiceImpl userService) {
+            this.userService = userService;
+        }
+
+        @Override
+        public void add() {
+            log("add");
+            userService.add();
+        }
+
+        @Override
+        public void delete() {
+            log("delete");
+            userService.delete();
+        }
+
+        @Override
+        public void update() {
+            log("update");
+            userService.update();
+        }
+
+        @Override
+        public void query() {
+            log("query");
+            userService.query();
+        }
+
+        /**
+        * 日志方法
+        * @param msg
+        */
+        public void log(String msg){
+            System.out.println("[Debug] 使用了" + msg + "方法");
+        }
+    }
+   ```
+   
+4. 客户端访问service：
+   ```java
+    public class Client {
+        public static void main(String[] args) {
+            UserServiceImpl userService = new UserServiceImpl();
+
+            UserServiceProxy userServiceProxy = new UserServiceProxy();
+
+            userServiceProxy.setUserService(userService);
+
+            userServiceProxy.add();
+        }
+    }
+   ```
+重点理解其中的**思想**；  
+**我们在不改变原来的代码的情况下，实现了对原有功能的增强，这是AOP中最核心的思想**
+
+聊聊AOP：纵向开发，横向开发
+![](img/聊聊AOP.png)
+
+## 10.3、动态代理
+* 动态代理和静态代理角色一样
+* 动态代理的代理类是动态生成的，不是我们直接写好的！
+* 动态代理分为两大类：基于接口的动态代理，基于类的动态代理
+  * 基于接口的动态代理----JDK动态代理
+  * 基于类的动态代理--cglib
+  * 现在用的比较多的是 javasist 来生成动态代理
+
+我们这里使用JDK的原生代码来实现，其余的道理都是一样的！
+
+
+**JDK的动态代理需要了解两个类**：  
+InvocationHandler：调用处理程序 和 Proxy：代理
+
+【InvocationHandler：调用处理程序】  
+![](img/InvocationHandler.png)
+```java
+Object invoke(Object proxy, 方法 method, Object[] args)；
+//参数
+//proxy - 调用该方法的代理实例
+//method -所述方法对应于调用代理实例上的接口方法的实例。方法对象的声明类将是该方法声明的接口，它可以是代理类继承该方法的代理接口的超级接口。
+//args -包含的方法调用传递代理实例的参数值的对象的阵列，或null如果接口方法没有参数。原始类型的参数包含在适当的原始包装器类的实例中，例如java.lang.Integer或java.lang.Boolean 。
+```
+
+【Proxy  : 代理】 
+![](/img/Proxy1.png)
+![](img/Proxy2.png)
+![](/img/Proxy3.png)
+```java
+//生成代理类
+public Object getProxy(){
+   return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+                                 rent.getClass().getInterfaces(),this);
+}
+```
+
+**代码实现**
+抽象角色和真实角色和之前的一样！
+Rent . java 即抽象角色
+```java
+//抽象角色：租房
+public interface Rent {
+   public void rent();
+}
+```
+
+```java
+Host . java 即真实角色
+
+//真实角色: 房东，房东要出租房子
+public class Host implements Rent{
+   public void rent() {
+       System.out.println("房屋出租");
+  }
+}
+```
+
+ProxyInvocationHandler. java 即代理角色
+```java
+public class ProxyInvocationHandler implements InvocationHandler {
+   private Rent rent;
+
+   public void setRent(Rent rent) {
+       this.rent = rent;
+  }
+
+   //生成代理类，重点是第二个参数，获取要代理的抽象角色！之前都是一个角色，现在可以代理一类角色
+   public Object getProxy(){
+       return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+               rent.getClass().getInterfaces(),this);
+  }
+
+   // proxy : 代理类 method : 代理类的调用处理程序的方法对象.
+   // 处理代理实例上的方法调用并返回结果
+   @Override
+   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+       seeHouse();
+       //核心：本质利用反射实现！
+       Object result = method.invoke(rent, args);
+       fare();
+       return result;
+  }
+
+   //看房
+   public void seeHouse(){
+       System.out.println("带房客看房");
+  }
+   //收中介费
+   public void fare(){
+       System.out.println("收中介费");
+  }
+
+}
+```
+
+Client . java
+```java
+//租客
+public class Client {
+
+   public static void main(String[] args) {
+       //真实角色
+       Host host = new Host();
+       //代理实例的调用处理程序
+       ProxyInvocationHandler pih = new ProxyInvocationHandler();
+       pih.setRent(host); //将真实角色放置进去！
+       Rent proxy = (Rent)pih.getProxy(); //动态生成对应的代理类！
+       proxy.rent();
+  }
+
+}
+```
+核心：**一个动态代理 , 一般代理某一类业务 , 一个动态代理可以代理多个类，代理的是接口！**
+
+
+**深化理解**
+我们来使用动态代理实现代理我们后面写的UserService！  
+我们也可以编写一个通用的动态代理实现的类！所有的代理对象设置为Object即可！  
+```java
+public class ProxyInvocationHandler implements InvocationHandler {
+   private Object target;
+
+   public void setTarget(Object target) {
+       this.target = target;
+  }
+
+   //生成代理类
+   public Object getProxy(){
+       return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+               target.getClass().getInterfaces(),this);
+  }
+
+   // proxy : 代理类
+   // method : 代理类的调用处理程序的方法对象.
+   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+       log(method.getName());
+       Object result = method.invoke(target, args);
+       return result;
+  }
+
+   public void log(String methodName){
+       System.out.println("执行了"+methodName+"方法");
+  }
+
+}
+```
+
+测试！
+```java
+public class Test {
+   public static void main(String[] args) {
+       //真实对象
+       UserServiceImpl userService = new UserServiceImpl();
+       //代理对象的调用处理程序
+       ProxyInvocationHandler pih = new ProxyInvocationHandler();
+       pih.setTarget(userService); //设置要代理的对象
+       UserService proxy = (UserService)pih.getProxy(); //动态生成代理类！
+       proxy.delete();
+  }
+}
+```
+测试，增删改查，查看结果！
+
+**动态代理的好处：**  
+静态代理有的它都有，静态代理没有的，它也有！
+* 可以使真实角色的操作更加纯粹！不用去关注一些公共的业务
+* 公共业务就交给代理角色！实现了业务的分工！
+* 公共业务发生扩展的时候，方便集中管理！
+* 一个动态代理类代理的是一个接口，一般对应的就是一类业务
+* 一个动态代理类可以代理多个类，只要是实现了同一个接口即可
+
+
+# 11、AOP
+
+## 11.1、什么是AOP
+AOP（Aspect Oriented Programming）意味：面向切面编程，通过预编译方式和运行期动态代理实现程序功能的统一维护的一种技术。AOP是OOP（面向对象）的延续，是软件开发中的一个热点，也是Spring框架中的一个重要内容，是函数式编程的一种衍生范型。利用AOP可以对业务逻辑的各个部分进行隔离，从而使业务逻辑各部分之间的耦合度降低，提高程序的可重用性，同时提高了开发的效率。  
+![](img/AOP.png)
+
+
+## 11.2、AOP在Spring中的作用
+**提供声明式事务；允许用户自定义切面**  
+一下名词需要了解下：
+* 横切关注点：跨越应用程序多个模块的方法或功能。就是，与我们业务逻辑无关的，但是我们需要关注的部分，就是横切关注点。例如日志、安全、缓存、事务等等...
+* 切面（Aspect）：横切关注点被模块化的特殊对象。即，它是一个类。
+* 通知（Adivice）：切面必须要完成的工作。即，它是类中的一个方法。
+* 目标（Target）：被通知对象。
+* 代理（Proxy）：向目标对象应用通知之后创建的对象。
+* 切入点（PointCut）：切面通知执行的“地点”的定义。
+* 连接点（JointPoint）：与切入点匹配的执行点。
+
+![](img/AOP各个名词.png)
+
+
+SpringAOP中，通过Advice定义横切逻辑，Spring中支持5中类型的Advice：  
+![](img/Spring中支持的5种类型Advice.png)
+
+即AOP在不改变原有代码的情况下，去增加新的功能。
+
+## 11.3、使用Spring实现AOP
+【重点】使用AOP织入，需要导入一个依赖包！
+```xml
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.4</version>
+</dependency>
+```
+
+方式一：使用Spring的Api接口 【主要是SpringAPI接口实现】
+
+方式二：自定义来实现AOP 【主要是切面定义】
+
+方式三：使用注解实现
